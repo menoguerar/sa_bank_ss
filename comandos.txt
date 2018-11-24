@@ -1,0 +1,44 @@
+git clone https://github.com/menoguerar/newsletter-api.git
+cd newsletter-api
+sudo su
+git fetch --all
+git reset --hard origin/master
+docker run docker/compose:1.13.0 version
+docker run --rm \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "$PWD:/rootfs/$PWD" \
+    -w="/rootfs/$PWD" \
+    docker/compose:1.13.0 build --no-cache
+
+bin/rails db:migrate
+bin/rails db:seed
+bin/d_rails s
+
+
+version: '2'
+services:
+  sa-user-ss-db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: railsapp
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: password
+    ports:
+      - "3310:3306"
+  sa-user-ss:
+    image: menoguera/newsletter-api
+    volumes:
+      - ./railsapp
+    ports:
+      - "3010:3000"
+    depends_on:
+      - sa-user-ss-db
+    links:
+      - sa-user-ss-db
+    environment:
+      DB_USER: root
+      DB_NAME: railsapp
+      DB_PASSWORD: password
+      DB_HOST: sa-user-ss-db
